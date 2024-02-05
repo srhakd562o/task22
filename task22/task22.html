@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .delete-icon, .edit-icon {
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .delete-icon {
+            color: red;
+        }
+
+        .edit-icon {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <form id="userForm" onsubmit="saveToCrud(event)">
+        <label>Name</label>
+        <input id='username' type="text" name="username" required/>
+        <label>EmailId</label>
+        <input id='email' type="text" name="emailId" required/>
+        <label>Phone number</label>
+        <input id='phonenumber' type="tel" name="phonenumber"/>
+        <input type="hidden" id="userId" />
+        <button id="submitBtn">Submit</button>
+    </form>
+    <ul id='listOfUser'></ul>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script>
+        function saveToCrud(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const phonenumber = document.getElementById('phonenumber').value;
+            const userId = document.getElementById('userId').value;
+
+            const obj = {
+                username,
+                email,
+                phonenumber
+            };
+
+            if (userId) {
+                // Send PUT request to crudcrud.com for updating existing user
+                updateUser(userId, obj);
+            } else {
+                // Send POST request to crudcrud.com for creating new user
+                createUser(obj);
+            }
+        }
+
+        function createUser(obj) {
+            axios.post('https://crudcrud.com/api/f16504fbb97c408096fd81887ff8b037/appointmentData', obj)
+                .then(response => {
+                    console.log('Object saved in the cloud:', response.data);
+                    showNewUserOnScreen(response.data); // Display locally
+                })
+                .catch(error => {
+                    console.error('Error saving object:', error);
+                    // Optionally, you can handle errors here
+                });
+        }
+
+        function updateUser(userId, obj) {
+            axios.put(`https://crudcrud.com/api/f16504fbb97c408096fd81887ff8b037/appointmentData/${userId}`, obj)
+                .then(response => {
+                    console.log('Object updated in the cloud:', response.data);
+                    // Update local storage with the new user details
+                    localStorage.setItem(obj.email, JSON.stringify(obj));
+                    // Clear form fields and reset submit button text
+                    document.getElementById('username').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('phonenumber').value = '';
+                    document.getElementById('userId').value = '';
+                    document.getElementById('submitBtn').textContent = 'Submit';
+                })
+                .catch(error => {
+                    console.error('Error updating object:', error);
+                    // Optionally, you can handle errors here
+                });
+        }
+
+        function fetchAndDisplayUserDetails() {
+            // Fetch user details from CRUD CRUD API
+            axios.get('https://crudcrud.com/api/f16504fbb97c408096fd81887ff8b037/appointmentData')
+                .then(response => {
+                    const userData = response.data;
+                    userData.forEach(user => {
+                        showNewUserOnScreen(user);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching user details:', error);
+                    // Optionally, you can handle errors here
+                });
+        }
+
+        window.addEventListener("DOMContentLoaded", fetchAndDisplayUserDetails);
+
+        function showNewUserOnScreen(obj) {
+            const parent = document.getElementById('listOfUser');
+            const child1 = document.createElement('li');
+            child1.textContent = obj.username + '-' + obj.email + '-' + obj.phonenumber;
+
+            const deleteBtn = document.createElement('span');
+            deleteBtn.textContent = ' ❌';
+            deleteBtn.className = 'delete-icon';
+            deleteBtn.addEventListener('click', function() {
+                deleteUser(obj._id, child1);
+            });
+
+            const editBtn = document.createElement('span');
+            editBtn.textContent = ' ✎';
+            editBtn.className = 'edit-icon';
+            editBtn.addEventListener('click', function() {
+                populateFormForEdit(obj);
+            });
+
+            child1.appendChild(deleteBtn);
+            child1.appendChild(editBtn);
+            parent.appendChild(child1);
+        }
+
+        function deleteUser(userId, listItem) {
+            axios.delete(`https://crudcrud.com/api/f16504fbb97c408096fd81887ff8b037/appointmentData/${userId}`)
+                .then(response => {
+                    console.log('User detail deleted:', response.data);
+                    // Remove user detail from the website
+                    listItem.remove();
+                })
+                .catch(error => {
+                    console.error('Error deleting user detail:', error);
+                    // Optionally, you can handle errors here
+                });
+        }
+
+        function populateFormForEdit(user) {
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email;
+            document.getElementById('phonenumber').value = user.phonenumber;
+            document.getElementById('userId').value = user._id;
+            document.getElementById('submitBtn').textContent = 'Update';
+        }
+    </script>
+</body>
+</html>
